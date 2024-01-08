@@ -1,0 +1,16 @@
+{
+    "name": "${localWorkspaceFolderBasename}",
+    "dockerComposeFile": "compose.yml",
+    "service": "app",
+    "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+    "extensions": [
+        "azuretools.vscode-docker",
+        "mhutchie.git-graph",
+        "Serhioromano.vscode-gitflow",
+        "vivaxy.vscode-conventional-commits",
+        "Codeium.codeium",
+        "golang.Go",
+        "golang.go-nightly",
+    ],
+    "initializeCommand": "echo init"
+}

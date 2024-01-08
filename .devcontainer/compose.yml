@@ -1,0 +1,23 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    ports:
+      - 8080:8080
+    volumes:
+      - ../..:/workspaces:cached
+      - ../app:/app
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    tty: true
+  redis:
+    # 引用元: https://zenn.dev/marushin/articles/4903cd0bbbcee0
+    image: redis:latest
+    container_name: redis
+    command: redis-server --appendonly yes
+    volumes:
+      - ../redis/data:/data
+    ports:
+      - 6379:6379
