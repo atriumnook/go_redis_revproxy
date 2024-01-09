@@ -3,6 +3,7 @@ module redis-revproxy
 go 1.20
 
 require (
+	github.com/gin-contrib/pprof v1.4.0
 	github.com/gin-gonic/gin v1.9.1
 	github.com/redis/rueidis v1.0.26
 )

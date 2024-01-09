@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/rueidis"
 )
@@ -35,13 +36,15 @@ func main() {
 
 	router := gin.Default()
 
+	pprof.Register(router)
+
 	// ログ記録のためのミドルウェア
 	router.Use(logMiddleware)
 
 	// ルーティングの設定
+	router.GET("/:path", handleRequest)
 	router.GET("/favicon.ico", serveFavicon)
 	router.GET("/image.png", serveImage)
-	// router.GET("/*path", handleRequest)
 	router.NoRoute(handleRequest)
 
 	if err := router.Run(":8080"); err != nil {
@@ -71,64 +74,26 @@ func handleRequest(c *gin.Context) {
 	serveProxy(c.Writer, c.Request, val)
 }
 
-// func serveProxy(w http.ResponseWriter, r *http.Request, target string) {
-// 	targetURL, err := url.Parse(target)
-// 	log.Println("URL: ", targetURL)
-// 	if err != nil {
-// 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-// 		log.Println("URL Parse: ", err)
-// 		return
-// 	}
-// 	newReverseProxy(targetURL)
-// 	log.Println("newReverseProxyURL: ", targetURL)
-// }
-
-func serveProxy(w http.ResponseWriter, r *http.Request, target string) *httputil.ReverseProxy {
+func serveProxy(w http.ResponseWriter, r *http.Request, target string) {
 	parsedURL, err := url.Parse(target)
-	if err != nil {
+	if err != nil || parsedURL.Scheme == "" || parsedURL.Host == "" {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		log.Println("URL Parse: ", err)
-		return nil
+		return
 	}
 	log.Println("parsedURL: ", parsedURL)
 	proxy := httputil.NewSingleHostReverseProxy(parsedURL)
-	// originalDirector := proxy.Director
-	// proxy.Director = func(r *http.Request) {
-	// 	originalDirector(r)
-	// 	r.URL.Scheme = parsedURL.Scheme // スキーマの設定
-	// 	r.URL.Host = parsedURL.Host     // ホストの設定
-	// 	r.URL.Path = parsedURL.Path     // パスの設定
-	// 	// 必要に応じて他のリクエストの属性も変更可能
-	// }
+	originalDirector := proxy.Director
+	proxy.Director = func(r *http.Request) {
+		originalDirector(r)
+		r.Host = parsedURL.Host
+		r.URL.Scheme = parsedURL.Scheme // スキーマの設定
+		r.URL.Host = parsedURL.Host     // ホストの設定
+		r.URL.Path = parsedURL.Path     // パスの設定
+	}
 
-	log.Println("proxy: ", proxy)
-	return proxy
+	proxy.ServeHTTP(w, r)
 }
-
-// func serveProxy(w http.ResponseWriter, r *http.Request, target string) {
-// 	targetURL, err := url.Parse(target)
-// 	log.Println("URL: ", targetURL)
-// 	if err != nil {
-// 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-// 		log.Println("URL Parse: ", err)
-// 		return
-// 	}
-// 	newReverseProxy(targetURL)
-// 	log.Println("newReverseProxyURL: ", targetURL)
-// }
-
-// func newReverseProxy(target *url.URL) *httputil.ReverseProxy {
-// 	proxy := httputil.NewSingleHostReverseProxy(target)
-// 	originalDirector := proxy.Director
-// 	proxy.Director = func(req *http.Request) {
-// 		originalDirector(req)
-// 		req.URL.Scheme = target.Scheme // スキーマの設定
-// 		req.URL.Host = target.Host     // ホストの設定
-// 		req.URL.Path = target.Path     // パスの設定
-// 		// 必要に応じて他のリクエストの属性も変更可能
-// 	}
-// 	return proxy
-// }
 
 func serveFavicon(c *gin.Context) {
 	c.File("assets/favicon.ico")
